@@ -5,9 +5,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CORTEX — School</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/cortex.css" />
 <link rel="stylesheet" href="../assets/css/page.css" />
+<style>
+  .tt-wrap{ overflow-x:auto; }
+  .tt-grid{
+    display:grid;
+    grid-template-columns: 64px repeat(5, 1fr);
+    min-width: 900px;
+    border: 1px solid var(--border);
+  }
+  .tt-cell{
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
+    min-height: 30px;
+    position: relative;
+  }
+  .tt-time{
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    padding: 4px 6px;
+    background: var(--bg-panel-2);
+    text-align: right;
+  }
+  .tt-day-head{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--cyan-bright);
+    text-align: center;
+    padding: 10px 6px;
+    background: rgba(0,217,255,0.06);
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border);
+  }
+  .tt-block{
+    position:absolute; left:2px; right:2px;
+    padding: 4px 6px;
+    font-size: 10px;
+    line-height:1.25;
+    overflow:hidden;
+    cursor: pointer;
+    border-left: 3px solid rgba(255,255,255,0.35);
+    transition: filter .12s, transform .12s;
+  }
+  .tt-block:hover{ filter: brightness(1.25); transform: scale(1.01); z-index:5; }
+  .tt-block .tt-subject{ font-weight:700; font-family: var(--font-body); font-size:11px; }
+  .tt-block .tt-teacher{ opacity:.85; font-size:9px; }
+  .tt-block .tt-note-flag{
+    position:absolute; top:2px; right:3px;
+    width:7px; height:7px;
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+
+  .note-popover{
+    position: fixed;
+    z-index: 999;
+    width: 260px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, calc(100% - 10px) 100%, 0 100%, 0 10px);
+    padding: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(0,217,255,0.15);
+    display: none;
+  }
+  .note-popover.open{ display:block; }
+  .note-popover-head{
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing:1.5px; text-transform:uppercase;
+    color: var(--cyan-bright); margin-bottom:8px;
+  }
+  .note-popover textarea{
+    width:100%; min-height: 80px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 8px;
+    resize: vertical;
+  }
+  .note-popover-actions{
+    display:flex; gap:8px; margin-top:10px; justify-content:flex-end;
+  }
+  .note-popover-actions button{
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing:1px; text-transform:uppercase;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim);
+  }
+  .note-popover-actions .np-save{ border-color: var(--border-strong); color: var(--cyan-bright); }
+  .note-popover-actions .np-delete{ border-color: rgba(255,59,92,0.4); color: var(--red); }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-family: var(--font-mono); font-size:9px; color: var(--text-faint); text-transform:uppercase; letter-spacing:.5px; }
+  .legend-swatch{ width:10px; height:10px; }
+</style>
 </head>
 <body>
 <div class="shell">
@@ -20,7 +119,7 @@
     <div class="sidebar-footer">
       <div class="user-card">
         <div class="avatar">HM</div>
-        <div class="user-meta"><div class="uname">Henry Milne</div><div class="ustatus"><span class="dot"></span> Online</div></div>
+        <div class="user-meta"><div class="uname">H. MILNER</div><div class="ustatus"><span class="dot"></span> Online</div></div>
       </div>
     </div>
   </aside>
@@ -29,12 +128,27 @@
     <div class="page-header">
       <div>
         <div class="page-title">School</div>
-        <div class="page-sub">Timetable, assignments, and school resources.</div>
+        <div class="page-sub">Weekly timetable — click any period to pin a note.</div>
       </div>
     </div>
 
-    <div class="simple-panel"><div class="empty-state">Your school timetable and assignments will appear here once connected.</div></div>
+    <div class="simple-panel">
+      <div class="tt-wrap">
+        <div class="tt-grid" id="tt-grid"></div>
+      </div>
+      <div class="legend" id="tt-legend"></div>
+    </div>
   </main>
+</div>
+
+<div class="note-popover" id="note-popover">
+  <div class="note-popover-head" id="note-popover-title">Note</div>
+  <textarea id="note-text" placeholder="Type a note for this class..."></textarea>
+  <div class="note-popover-actions">
+    <button class="np-delete" id="np-delete">Clear</button>
+    <button id="np-cancel">Cancel</button>
+    <button class="np-save" id="np-save">Save</button>
+  </div>
 </div>
 
 <script src="../assets/js/config.js"></script>
@@ -42,6 +156,231 @@
 <script src="../assets/js/nav.js"></script>
 <script>
   renderCortexSidebar("school", "../");
+
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const GRID_START = 9 * 60;
+  const GRID_END = 15 * 60 + 15;
+  const PX_PER_MIN = 1.2;
+
+  const COLORS = {
+    "Home Group": "#f5c542",
+    "Community Connect": "#5cd6c0",
+    "Rite Journey": "#f5a623",
+    "Health And Physical Education": "#e0453f",
+    "Side Hustle": "#3c5fd6",
+    "Science": "#8a6a4e",
+    "Christian Studies": "#c9cdd3",
+    "Humanities": "#e8d24a",
+    "English": "#7c4fd6",
+    "Mathematics": "#3fae5a",
+    "Woodwork": "#e8712c",
+    "Worship": "#e0602a",
+    "HM - Meeting": "#9aa0aa",
+  };
+
+  const TIMETABLE = [
+    { day: 0, subject: "Home Group", teacher: "", start: "09:00", end: "09:45" },
+    { day: 0, subject: "Community Connect", teacher: "Tom Schumacher", start: "09:00", end: "09:45" },
+    { day: 0, subject: "Rite Journey", teacher: "Michael Minuzzo", start: "09:45", end: "10:30" },
+    { day: 0, subject: "Rite Journey", teacher: "Michael Minuzzo", start: "10:30", end: "11:15" },
+    { day: 0, subject: "Science", teacher: "Courtney Lewis", start: "11:35", end: "12:20" },
+    { day: 0, subject: "Science", teacher: "Courtney Lewis", start: "12:20", end: "13:05" },
+    { day: 0, subject: "Mathematics", teacher: "Fanie Geyser", start: "13:45", end: "14:30" },
+    { day: 0, subject: "Humanities", teacher: "France Human", start: "14:30", end: "15:15" },
+
+    { day: 1, subject: "Home Group", teacher: "", start: "09:00", end: "09:45" },
+    { day: 1, subject: "Health And Physical Education", teacher: "Tom Schumacher", start: "09:00", end: "09:45" },
+    { day: 1, subject: "Health And Physical Education", teacher: "Tom Schumacher", start: "09:45", end: "10:30" },
+    { day: 1, subject: "Side Hustle", teacher: "Sam Clark", start: "10:30", end: "11:15" },
+    { day: 1, subject: "Christian Studies", teacher: "", start: "11:35", end: "12:20" },
+    { day: 1, subject: "Woodwork", teacher: "Shawn Metzger", start: "12:20", end: "13:05" },
+    { day: 1, subject: "English", teacher: "Allison McDonnell", start: "13:45", end: "14:30" },
+    { day: 1, subject: "HM - Meeting", teacher: "Allison", start: "13:45", end: "14:15" },
+    { day: 1, subject: "Mathematics", teacher: "Fanie Geyser", start: "14:30", end: "15:15" },
+
+    { day: 2, subject: "Home Group", teacher: "", start: "09:00", end: "09:45" },
+    { day: 2, subject: "Science", teacher: "Courtney Lewis", start: "09:00", end: "09:45" },
+    { day: 2, subject: "Christian Studies", teacher: "Jason Buckland", start: "09:45", end: "10:30" },
+    { day: 2, subject: "English", teacher: "Allison McDonnell", start: "10:30", end: "11:15" },
+    { day: 2, subject: "Mathematics", teacher: "Fanie Geyser", start: "11:35", end: "12:20" },
+    { day: 2, subject: "Mathematics", teacher: "Fanie Geyser", start: "12:20", end: "13:05" },
+    { day: 2, subject: "Humanities", teacher: "France Human", start: "13:45", end: "14:30" },
+    { day: 2, subject: "Woodwork", teacher: "Shawn Metzger", start: "14:30", end: "15:15" },
+
+    { day: 3, subject: "Home Group", teacher: "", start: "09:00", end: "09:45" },
+    { day: 3, subject: "Humanities", teacher: "France Human", start: "09:00", end: "09:45" },
+    { day: 3, subject: "Humanities", teacher: "France Human", start: "09:45", end: "10:30" },
+    { day: 3, subject: "Science", teacher: "Courtney Lewis", start: "10:30", end: "11:15" },
+    { day: 3, subject: "Mathematics", teacher: "Fanie Geyser", start: "11:35", end: "12:20" },
+    { day: 3, subject: "Side Hustle", teacher: "Sam Clark", start: "12:20", end: "13:05" },
+    { day: 3, subject: "Health And Physical Education", teacher: "Tom Schumacher", start: "13:45", end: "14:30" },
+    { day: 3, subject: "English", teacher: "Allison McDonnell", start: "14:30", end: "15:15" },
+
+    { day: 4, subject: "Home Group", teacher: "", start: "09:00", end: "09:45" },
+    { day: 4, subject: "Worship", teacher: "Tom Schumacher", start: "09:00", end: "09:45" },
+    { day: 4, subject: "Side Hustle", teacher: "Sam Clark", start: "09:45", end: "10:30" },
+    { day: 4, subject: "Side Hustle", teacher: "Sam Clark", start: "10:30", end: "11:15" },
+    { day: 4, subject: "English", teacher: "Allison McDonnell", start: "11:35", end: "12:20" },
+    { day: 4, subject: "English", teacher: "Allison McDonnell", start: "12:20", end: "13:05" },
+    { day: 4, subject: "Woodwork", teacher: "Shawn Metzger", start: "13:45", end: "14:30" },
+    { day: 4, subject: "Woodwork", teacher: "Shawn Metzger", start: "14:30", end: "15:15" },
+  ];
+
+  function toMin(hhmm) {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function cellId(block) {
+    return `${block.day}_${block.start}_${block.end}_${block.subject}`.replace(/\s+/g, "-");
+  }
+
+  function getNotes() {
+    return CortexMemory.getSettings().schoolNotes || {};
+  }
+  function saveNote(id, text) {
+    const notes = getNotes();
+    if (text && text.trim()) notes[id] = text.trim();
+    else delete notes[id];
+    CortexMemory.setSettings({ schoolNotes: notes });
+  }
+
+  function buildGrid() {
+    const grid = document.getElementById("tt-grid");
+    grid.innerHTML = "";
+    const totalMin = GRID_END - GRID_START;
+    const gridHeight = totalMin * PX_PER_MIN;
+
+    grid.appendChild(el("div", "tt-cell tt-time", ""));
+    DAYS.forEach(d => grid.appendChild(el("div", "tt-day-head", d)));
+
+    for (let t = GRID_START; t < GRID_END; t += 15) {
+      const timeCell = el("div", "tt-cell tt-time", (t % 60 === 0) ? minToLabel(t) : "");
+      timeCell.style.height = (15 * PX_PER_MIN) + "px";
+      grid.appendChild(timeCell);
+      for (let d = 0; d < 5; d++) {
+        const c = el("div", "tt-cell", "");
+        c.style.height = (15 * PX_PER_MIN) + "px";
+        c.dataset.day = d;
+        c.dataset.slot = t;
+        grid.appendChild(c);
+      }
+    }
+
+    grid.style.gridTemplateRows = `auto repeat(${totalMin / 15}, ${15 * PX_PER_MIN}px)`;
+
+    const notes = getNotes();
+    const dayColumns = DAYS.map((_, i) => {
+      const wrap = document.createElement("div");
+      wrap.style.position = "absolute";
+      return wrap;
+    });
+
+    requestAnimationFrame(() => {
+      const gridRect = grid.getBoundingClientRect();
+      const firstDataCell = grid.querySelector('.tt-cell[data-day="0"]');
+      if (!firstDataCell) return;
+
+      TIMETABLE.forEach(block => {
+        const dayCells = Array.from(grid.querySelectorAll(`.tt-cell[data-day="${block.day}"]`));
+        if (dayCells.length === 0) return;
+        const colRect = dayCells[0].getBoundingClientRect();
+        const startMin = toMin(block.start) - GRID_START;
+        const endMin = toMin(block.end) - GRID_START;
+        const top = startMin * PX_PER_MIN + dayCells[0].offsetTop;
+        const height = (endMin - startMin) * PX_PER_MIN;
+
+        const id = cellId(block);
+        const color = COLORS[block.subject] || "#666";
+        const b = document.createElement("div");
+        b.className = "tt-block";
+        b.style.background = color + "cc";
+        b.style.borderLeftColor = color;
+        b.style.top = top + "px";
+        b.style.height = Math.max(height - 2, 14) + "px";
+        b.innerHTML = `
+          <div class="tt-subject">${block.subject}</div>
+          ${block.teacher ? `<div class="tt-teacher">${block.teacher}</div>` : ""}
+          ${notes[id] ? '<div class="tt-note-flag" title="Has a note"></div>' : ""}
+        `;
+        b.addEventListener("click", () => openNotePopover(block, id, b));
+        dayCells[0].parentElement.appendChild(b);
+        b.style.position = "absolute";
+        b.style.left = dayCells[0].offsetLeft + 2 + "px";
+        b.style.width = (dayCells[0].offsetWidth - 4) + "px";
+      });
+    });
+  }
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  function minToLabel(t) {
+    const h = Math.floor(t / 60);
+    const m = t % 60;
+    const period = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, "0")}`;
+  }
+
+  function buildLegend() {
+    const legend = document.getElementById("tt-legend");
+    legend.innerHTML = Object.entries(COLORS).map(([subject, color]) => `
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:${color}"></div>
+        ${subject}
+      </div>
+    `).join("");
+  }
+
+  // Note popover
+  let activeNoteId = null;
+  const popover = document.getElementById("note-popover");
+  const noteText = document.getElementById("note-text");
+  const noteTitle = document.getElementById("note-popover-title");
+
+  function openNotePopover(block, id, blockEl) {
+    activeNoteId = id;
+    const notes = getNotes();
+    noteText.value = notes[id] || "";
+    noteTitle.textContent = `${block.subject} — ${block.start}\u2013${block.end}`;
+
+    const rect = blockEl.getBoundingClientRect();
+    popover.style.top = Math.min(rect.top, window.innerHeight - 260) + "px";
+    popover.style.left = Math.min(rect.left + 20, window.innerWidth - 280) + "px";
+    popover.classList.add("open");
+    noteText.focus();
+  }
+
+  function closePopover() {
+    popover.classList.remove("open");
+    activeNoteId = null;
+  }
+
+  document.getElementById("np-save").addEventListener("click", () => {
+    if (activeNoteId) saveNote(activeNoteId, noteText.value);
+    closePopover();
+    buildGrid();
+  });
+  document.getElementById("np-delete").addEventListener("click", () => {
+    if (activeNoteId) saveNote(activeNoteId, "");
+    closePopover();
+    buildGrid();
+  });
+  document.getElementById("np-cancel").addEventListener("click", closePopover);
+  document.addEventListener("click", (e) => {
+    if (popover.classList.contains("open") && !popover.contains(e.target) && !e.target.closest(".tt-block")) {
+      closePopover();
+    }
+  });
+
+  buildGrid();
+  buildLegend();
+  window.addEventListener("resize", buildGrid);
 </script>
 </body>
 </html>
