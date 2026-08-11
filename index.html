@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CORTEX — AI Operating System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/cortex.css" />
 </head>
 <body>
@@ -29,7 +29,7 @@
       <div class="user-card">
         <div class="avatar">HM</div>
         <div class="user-meta">
-          <div class="uname">Henry Milne</div>
+          <div class="uname">H. MILNER</div>
           <div class="ustatus"><span class="dot"></span> Online</div>
         </div>
         <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
@@ -80,9 +80,9 @@
         <section class="hero">
           <div class="hero-top">
             <div>
-              <p class="greeting" id="cortex-greeting">Good evening,</p>
-              <h1 class="hero-name">Henry<span class="dot-accent">.</span></h1>
-              <p class="hero-sub">What shall we accomplish today?</p>
+              <p class="greeting" id="cortex-greeting">System online</p>
+              <h1 class="hero-name">CORTEX<span class="dot-accent">.</span></h1>
+              <p class="hero-sub">Awaiting instruction.</p>
             </div>
             <div class="hero-mark">
               <div class="wordmark">CORTEX</div>
@@ -301,10 +301,6 @@
       now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     document.getElementById("cortex-date").textContent =
       now.toLocaleDateString([], { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
-
-    const hour = now.getHours();
-    const greeting = hour < 12 ? "Good morning," : hour < 18 ? "Good afternoon," : "Good evening,";
-    document.getElementById("cortex-greeting").textContent = greeting;
   }
   updateClock();
   setInterval(updateClock, 30000);
