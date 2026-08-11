@@ -5,9 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CORTEX — Outlook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/cortex.css" />
 <link rel="stylesheet" href="../assets/css/page.css" />
+<style>
+  .ol-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
+  .ol-item{
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .ol-item:last-child{ border-bottom:none; }
+  .ol-subject{ font-size:13px; font-weight:700; color: var(--text); margin-bottom:3px; }
+  .ol-meta{ font-family: var(--font-mono); font-size:10px; color: var(--text-faint); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+  .ol-preview{ font-size:12px; color: var(--text-dim); line-height:1.4; }
+  .ol-unread{ border-left: 2px solid var(--cyan); padding-left:10px; }
+  .ol-refresh{ margin-bottom:16px; }
+  .ol-error{ font-family: var(--font-mono); font-size:11px; color: var(--red); margin-top:10px; }
+  .ol-loading{ font-family: var(--font-mono); font-size:11px; color: var(--text-faint); }
+  @media (max-width: 900px){ .ol-grid{ grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
 <div class="shell">
@@ -20,7 +36,7 @@
     <div class="sidebar-footer">
       <div class="user-card">
         <div class="avatar">HM</div>
-        <div class="user-meta"><div class="uname">Henry Milne</div><div class="ustatus"><span class="dot"></span> Online</div></div>
+        <div class="user-meta"><div class="uname">H. MILNER</div><div class="ustatus"><span class="dot"></span> Online</div></div>
       </div>
     </div>
   </aside>
@@ -29,11 +45,23 @@
     <div class="page-header">
       <div>
         <div class="page-title">Outlook</div>
-        <div class="page-sub">Emails and calendar.</div>
+        <div class="page-sub">Live emails and calendar via Composio.</div>
       </div>
     </div>
 
-    <div class="simple-panel"><div class="empty-state">Connect Outlook via Composio in Settings to see messages and events here.</div></div>
+    <button class="btn-secondary ol-refresh" id="ol-refresh">Refresh</button>
+
+    <div class="ol-grid">
+      <div class="simple-panel">
+        <div class="section-label"><span class="dot"></span> Inbox</div>
+        <div id="ol-emails"><div class="ol-loading">Loading emails...</div></div>
+      </div>
+      <div class="simple-panel">
+        <div class="section-label"><span class="dot"></span> Calendar</div>
+        <div id="ol-events"><div class="ol-loading">Loading events...</div></div>
+      </div>
+    </div>
+    <div class="ol-error" id="ol-error"></div>
   </main>
 </div>
 
@@ -42,6 +70,68 @@
 <script src="../assets/js/nav.js"></script>
 <script>
   renderCortexSidebar("outlook", "../");
+
+  function fmtDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
+  async function loadOutlook() {
+    document.getElementById("ol-emails").innerHTML = '<div class="ol-loading">Loading emails...</div>';
+    document.getElementById("ol-events").innerHTML = '<div class="ol-loading">Loading events...</div>';
+    document.getElementById("ol-error").textContent = "";
+
+    try {
+      const res = await fetch("/api/outlook");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load Outlook data");
+
+      const emailsEl = document.getElementById("ol-emails");
+      if (!data.emails || data.emails.length === 0) {
+        emailsEl.innerHTML = '<div class="empty-state">No recent emails found.</div>';
+      } else {
+        emailsEl.innerHTML = data.emails.map(e => `
+          <div class="ol-item ${!e.isRead ? 'ol-unread' : ''}">
+            <div class="ol-subject">${escapeHtml(e.subject)}</div>
+            <div class="ol-meta">${escapeHtml(e.from)} · ${fmtDate(e.receivedAt)}</div>
+            <div class="ol-preview">${escapeHtml(e.preview)}</div>
+          </div>
+        `).join("");
+      }
+
+      const eventsEl = document.getElementById("ol-events");
+      if (!data.events || data.events.length === 0) {
+        eventsEl.innerHTML = '<div class="empty-state">No upcoming events found.</div>';
+      } else {
+        eventsEl.innerHTML = data.events.map(ev => `
+          <div class="ol-item">
+            <div class="ol-subject">${escapeHtml(ev.subject)}</div>
+            <div class="ol-meta">${fmtDate(ev.start)} ${ev.end ? "– " + fmtDate(ev.end) : ""}</div>
+            ${ev.location ? `<div class="ol-preview">${escapeHtml(ev.location)}</div>` : ""}
+          </div>
+        `).join("");
+      }
+
+      if (data.errors && data.errors.length) {
+        document.getElementById("ol-error").textContent = "Partial data: " + data.errors.join("; ");
+      }
+    } catch (e) {
+      document.getElementById("ol-emails").innerHTML = '<div class="empty-state">Could not load emails.</div>';
+      document.getElementById("ol-events").innerHTML = '<div class="empty-state">Could not load events.</div>';
+      document.getElementById("ol-error").textContent = "Error: " + e.message;
+    }
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement("div");
+    d.textContent = str || "";
+    return d.innerHTML;
+  }
+
+  document.getElementById("ol-refresh").addEventListener("click", loadOutlook);
+  loadOutlook();
 </script>
 </body>
 </html>
