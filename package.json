@@ -4,6 +4,6 @@
   "private": true,
   "description": "CORTEX — Henry's personal AI operating system.",
   "dependencies": {
-    "@composio/client": "^1.0.0"
+    "@composio/core": "latest"
   }
 }
